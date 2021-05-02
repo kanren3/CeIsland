@@ -157,6 +157,7 @@ FindImageBase32(
 	PEB32 Peb;
 	PEB_LDR_DATA32 Ldr;
 	LDR_DATA_TABLE_ENTRY32 Entry;
+	LDR_DATA_TABLE_ENTRY32 ExeEntry;
 
 	ULONG ModuleListHead;
 	ULONG Next;
@@ -184,6 +185,13 @@ FindImageBase32(
 		Next = Ldr.InLoadOrderModuleList.Flink;
 
 		if (Next) {
+			ReadProcessMemory(
+				ProcessHandle,
+				Next,
+				&ExeEntry,
+				sizeof(ExeEntry),
+				NULL);
+
 			while (Next != ModuleListHead) {
 				ReadProcessMemory(
 					ProcessHandle,
@@ -199,9 +207,14 @@ FindImageBase32(
 					sizeof(Next),
 					NULL);
 
-				*DataTableEntry = Entry;
-				return TRUE;
+				if (TrackBlock.DebugThreadContext.Rip > Entry.DllBase &&
+					TrackBlock.DebugThreadContext.Rip < Entry.DllBase + Entry.SizeOfImage)
+				{
+					*DataTableEntry = Entry;
+					return TRUE;
+				}
 			}
+			*DataTableEntry = ExeEntry;
 		}
 		CloseHandle(ProcessHandle);
 	}
@@ -219,6 +232,7 @@ FindImageBase64(
 	PEB64 Peb;
 	PEB_LDR_DATA64 Ldr;
 	LDR_DATA_TABLE_ENTRY64 Entry;
+	LDR_DATA_TABLE_ENTRY64 ExeEntry;
 
 	ULONG64 ModuleListHead;
 	ULONG64 Next;
@@ -246,6 +260,13 @@ FindImageBase64(
 		Next = Ldr.InLoadOrderModuleList.Flink;
 
 		if (Next) {
+			ReadProcessMemory(
+				ProcessHandle,
+				Next,
+				&ExeEntry,
+				sizeof(ExeEntry),
+				NULL);
+
 			while (Next != ModuleListHead) {
 				ReadProcessMemory(
 					ProcessHandle,
@@ -260,10 +281,15 @@ FindImageBase64(
 					&Next,
 					sizeof(Next),
 					NULL);
-
-				*DataTableEntry = Entry;
-				return TRUE;
+				
+				if (TrackBlock.DebugThreadContext.Rip > Entry.DllBase &&
+					TrackBlock.DebugThreadContext.Rip < Entry.DllBase + Entry.SizeOfImage)
+				{
+					*DataTableEntry = Entry;
+					return TRUE;
+				}
 			}
+			*DataTableEntry = ExeEntry;
 		}
 		CloseHandle(ProcessHandle);
 	}

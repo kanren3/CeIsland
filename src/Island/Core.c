@@ -254,6 +254,7 @@ init_descriptor64(
 	desc->system = 1;
 }
 
+
 VOID
 WINAPI
 MapSegment(

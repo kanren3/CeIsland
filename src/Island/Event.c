@@ -45,6 +45,7 @@ DebugEventPlugin(
 	HANDLE ThreadHandle = NULL;
 
 	LDR_DATA_TABLE_ENTRY64 Entry = { 0 };
+	LDR_DATA_TABLE_ENTRY32 Wow64Entry = { 0 };
 
 	TrackBlock.ProcessID = DebugEvent->dwProcessId;
 
@@ -67,21 +68,26 @@ DebugEventPlugin(
 
 		if (TrackBlock.Peb != GetThreadPeb(TrackBlock.ProcessID, TrackBlock.Teb)) {
 			TrackBlock.Peb = GetThreadPeb(TrackBlock.ProcessID, TrackBlock.Teb);
-
 			PebDebugHandle();
-
-			RinPrint("Peb:%llX\n", TrackBlock.Peb);
-			RinPrint("PEB Debug Handle.");
-		}
-
-		if (FindImageBase64(&Entry)) {
-			TrackBlock.DllBase = Entry.DllBase;
-			TrackBlock.SizeOfImage = Entry.SizeOfImage;
 		}
 
 		if (ThreadHandle) {
 			TrackBlock.DebugThreadContext.ContextFlags = CONTEXT_ALL;
 			if (GetThreadContext(ThreadHandle, &TrackBlock.DebugThreadContext)) {
+
+				if (!TrackBlock.Wow64Process) {
+					if (FindImageBase64(&Entry)) {
+						TrackBlock.DllBase = Entry.DllBase;
+						TrackBlock.SizeOfImage = Entry.SizeOfImage;
+					}
+				}
+				else {
+					if (FindImageBase32(&Wow64Entry)) {
+						TrackBlock.DllBase = Wow64Entry.DllBase;
+						TrackBlock.SizeOfImage = Wow64Entry.SizeOfImage;
+					}
+				}
+
 				if (TrackBlock.TrackhWnd) {
 					SendMessageTimeoutA(
 						TrackBlock.TrackhWnd,
